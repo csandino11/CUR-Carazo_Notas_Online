@@ -49,7 +49,7 @@ css_style = f"""
         backdrop-filter: blur(5px);
     }}
 
-    /* 3. TIPOGRAFÍA */
+    /* 3. TIPOGRAFÍA Y TEXTOS (MODO OSCURO BLINDADO) */
     html, body, [class*="css"] {{
         font-family: 'Roboto', 'Segoe UI', sans-serif;
         color: #222;
@@ -90,7 +90,7 @@ css_style = f"""
         box-shadow: 0 0 0 2px rgba(88, 178, 76, 0.2);
     }}
 
-    /* 5. BOTONES VERDES */
+    /* 5. BOTONES VERDES (Consultar y Descargar) */
     div.stButton > button, div.stDownloadButton > button {{
         background-color: #58b24c !important;
         color: white !important;
@@ -135,6 +135,7 @@ css_style = f"""
         padding-top: 10px;
     }}
     
+    /* Tarjeta de Asignatura (Flexbox) */
     .subject-card {{
         background-color: white;
         border: 1px solid #f0f0f0;
@@ -149,7 +150,14 @@ css_style = f"""
     .subject-left {{ flex: 1; padding-right: 15px; }}
     .subject-title {{ font-weight: 700; color: #222 !important; font-size: 1rem; display: block; }}
     .subject-docente {{ font-size: 0.85rem; color: #666 !important; display: block; }}
-    .subject-right {{ text-align: right; min-width: 85px; display: flex; flex-direction: column; align-items: flex-end; }}
+    
+    .subject-right {{ 
+        text-align: right; 
+        min-width: 85px; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: flex-end; 
+    }}
     .grade-display {{ font-size: 1.4rem; font-weight: 800; display: block; }}
     .status-badge {{ font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-top: 4px; }}
     .nota-esp {{ font-size: 0.75rem; color: #d9534f !important; font-weight: bold; display: block; margin-top: 4px; }}
@@ -167,11 +175,12 @@ def cargar_datos():
     try:
         df = pd.read_excel("Notas.xlsx", sheet_name="Datos", dtype=str)
         df.columns = df.columns.str.strip()
+        # Rellenar vacíos con guión para evitar problemas de nan
         return df.fillna("-")
     except:
         return None
 
-# --- GENERACIÓN PDF (MEJORADA) ---
+# --- GENERACIÓN PDF (CORREGIDA) ---
 def generar_pdf(alumno_data, info):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=LETTER, topMargin=40, bottomMargin=40)
@@ -202,11 +211,10 @@ def generar_pdf(alumno_data, info):
     elements.append(Paragraph("<b>ACTA DE CALIFICACIONES</b>", ParagraphStyle('S', alignment=TA_CENTER, fontSize=14)))
     elements.append(Spacer(1, 25))
     
-    # 2. INFO ESTUDIANTE (SIN DOS PUNTOS INNECESARIOS)
+    # 2. INFO ESTUDIANTE
     estilo_b = ParagraphStyle('B', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10)
     estilo_n = ParagraphStyle('N', parent=styles['Normal'], fontName='Helvetica', fontSize=10)
     
-    # Eliminamos los ":" de las etiquetas para limpieza visual
     data_info = [
         [Paragraph("ESTUDIANTE", estilo_b), Paragraph(info['nombre'], estilo_n), Paragraph("CARNET", estilo_b), Paragraph(info['carnet'], estilo_n)],
         [Paragraph("CARRERA", estilo_b), Paragraph(info['carrera'], estilo_n), "", ""],
@@ -217,7 +225,7 @@ def generar_pdf(alumno_data, info):
     elements.append(t_info)
     elements.append(Spacer(1, 20))
     
-    # 3. TABLA DE NOTAS (ENCABEZADO AZUL COMPLETO)
+    # 3. TABLA DE NOTAS (CORRECCIÓN DE COLOR ENCABEZADOS)
     data_notas = [['ASIGNATURA', 'DOCENTE', 'NOTA', 'N. ESP.', 'ESTADO']]
     for item in alumno_data:
         data_notas.append([
@@ -228,21 +236,22 @@ def generar_pdf(alumno_data, info):
     
     t_notas = Table(data_notas, colWidths=[2.3*inch, 2.0*inch, 0.7*inch, 0.7*inch, 1.0*inch])
     t_notas.setStyle(TableStyle([
-        # Fondo Azul para TODA la primera fila (0,0) hasta (-1,0)
+        # Fondo Azul para TODO el encabezado (Fila 0)
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#003366")),
-        # Texto Blanco para TODA la primera fila
+        # Texto Blanco para TODO el encabezado
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        # Alineación
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        # Filas alternas
-        ('ROWBACKGROUNDS', (1,0), (-1,-1), [colors.whitesmoke, colors.white]),
+        # Filas alternas (IMPORTANTE: empezar en (0,1) que es Col 0, Fila 1)
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.white]),
         ('GRID', (0,0), (-1,-1), 0.5, colors.grey)
     ]))
     elements.append(t_notas)
     
-    # 4. ZONA DE FIRMA (AGREGADO)
-    elements.append(Spacer(1, 60)) # Espacio para firmar
+    # 4. ZONA DE FIRMA
+    elements.append(Spacer(1, 60))
     elements.append(Paragraph("___________________________________", ParagraphStyle('FirmaLine', alignment=TA_CENTER)))
     elements.append(Paragraph("Registro Académico", ParagraphStyle('FirmaText', alignment=TA_CENTER, fontSize=10, fontName='Helvetica-Bold')))
     
@@ -310,7 +319,11 @@ def main():
                 datos_pdf = []
                 
                 for _, row in res.iterrows():
-                    nf, ne = str(row['Nota Final']).strip(), str(row['Nota de Especial']).strip()
+                    nf = str(row['Nota Final']).strip()
+                    # Verificar si existe Nota de Especial y limpiarla
+                    ne_raw = str(row['Nota de Especial']).strip()
+                    ne = ne_raw if ne_raw and ne_raw.lower() != "nan" and ne_raw != "-" else ""
+                    
                     estado_texto, color_nota, color_badge, bg_badge = "APROBADO", "#2e7d32", "#155724", "#d4edda"
                     mostrar_ne_html = ""
                     
@@ -320,13 +333,15 @@ def main():
                         val = float(nf)
                         if val < 60:
                             estado_texto, color_nota, color_badge, bg_badge = "REPROBADO", "#c62828", "#721c24", "#f8d7da"
-                            if ne and ne != "-" and not es_sd:
+                            # Lógica estricta para Nota Especial
+                            # Solo si: Nota < 60 Y no es SD Y hay un valor real en Nota Especial
+                            if not es_sd and ne:
                                 mostrar_ne_html = f'<span class="nota-esp">Nota Esp: {ne}</span>'
                     except:
                         if es_sd:
                             estado_texto, color_nota, color_badge, bg_badge = "SIN DERECHO", "#c62828", "#721c24", "#f8d7da"
 
-                    # TARJETA DE MATERIA (HTML LIMPIO)
+                    # TARJETA DE MATERIA (HTML LIMPIO - SIN EL DIV SUELTO)
                     st.markdown(f"""
                     <div class="subject-card">
                         <div class="subject-left">
