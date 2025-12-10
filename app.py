@@ -27,61 +27,71 @@ def get_base64_of_bin_file(bin_file):
 img_fondo_base64 = get_base64_of_bin_file("fondo.jpg")
 logo_base64 = get_base64_of_bin_file("logo.png")
 
-# --- CSS: DISEÑO "MOBILE FIRST" ELEGANTE ---
+# --- CSS: DISEÑO "MOBILE FIRST" FINAL ---
 css_style = f"""
     <style>
-    /* 1. FONDO Y CONTENEDOR */
+    /* 1. FONDO MOSAICO */
     .stApp {{
         background-image: url("data:image/jpg;base64,{img_fondo_base64}");
-        background-size: cover;
-        background-position: center;
         background-attachment: fixed;
+        background-repeat: repeat;
+        background-size: auto;
     }}
+    
+    /* 2. CONTENEDOR DIFUMINADO */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.96);
-        border-radius: 0px 0px 20px 20px; /* Bordes redondeados solo abajo */
-        padding: 1rem 1rem 3rem 1rem; /* Padding reducido para movil */
+        background-color: rgba(255, 255, 255, 0.88);
+        border-radius: 0px 0px 20px 20px;
+        padding: 1rem 1rem 3rem 1rem;
         max-width: 800px;
-        margin-top: -60px; /* Subir todo para aprovechar pantalla movil */
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        margin-top: -60px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        backdrop-filter: blur(5px);
     }}
 
-    /* 2. TIPOGRAFÍA Y ENCABEZADOS */
+    /* 3. TIPOGRAFÍA */
     html, body, [class*="css"] {{
         font-family: 'Roboto', 'Segoe UI', sans-serif;
         color: #222;
     }}
     .header-container {{
         text-align: center;
-        margin-bottom: 20px;
-        padding-top: 20px;
+        margin-bottom: 25px;
+        padding-top: 15px;
+    }}
+    .header-subtitle {{
+        color: #555 !important;
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }}
     .univ-title {{
-        color: #003366;
-        font-size: 1.6rem; /* Grande y legible */
+        color: #003366 !important;
+        font-size: 1.5rem;
         font-weight: 800;
-        margin-top: 10px;
+        margin-top: 5px;
         line-height: 1.2;
-        letter-spacing: -0.5px;
     }}
 
-    /* 3. INPUT DE CARNET (GRANDE PARA DEDOS) */
+    /* 4. INPUT DE CARNET */
     .stTextInput > div > div > input {{
         text-align: center;
         font-size: 1.4rem;
-        padding: 15px;
+        padding: 12px;
         border: 2px solid #ccc;
         border-radius: 12px;
-        color: #333 !important;
+        color: #000 !important;
         background-color: #fff !important;
     }}
     .stTextInput > div > div > input:focus {{
         border-color: #58b24c;
+        box-shadow: 0 0 0 2px rgba(88, 178, 76, 0.2);
     }}
 
-    /* 4. BOTONES VERDES UNIFICADOS (#58b24c) */
-    /* Afecta tanto al botón de Buscar como al de Descargar */
-    div.stButton > button {{
+    /* 5. BOTONES VERDES */
+    div.stButton > button, div.stDownloadButton > button {{
         background-color: #58b24c !important;
         color: white !important;
         border: none;
@@ -93,99 +103,57 @@ css_style = f"""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         transition: all 0.2s;
     }}
-    div.stButton > button:active {{
+    div.stButton > button:active, div.stDownloadButton > button:active {{
         transform: scale(0.98);
         background-color: #46963b !important;
     }}
-    /* Hover effect */
-    div.stButton > button:hover {{
+    div.stButton > button:hover, div.stDownloadButton > button:hover {{
         background-color: #46963b !important;
         box-shadow: 0 6px 12px rgba(0,0,0,0.15);
     }}
 
-    /* 5. TARJETA DE ESTUDIANTE (INFO PERSONAL) */
+    /* 6. ESTILOS DE TARJETAS */
     .student-info-card {{
-        background: #f0f4f8;
+        background: #ffffff;
         border-left: 5px solid #003366;
-        padding: 15px;
+        padding: 15px 20px;
         border-radius: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }}
     .student-name {{
-        color: #003366;
-        font-size: 1.3rem;
+        color: #003366 !important;
+        font-size: 1.4rem;
         font-weight: 700;
-        margin: 0 0 5px 0;
+        margin: 0 0 10px 0;
     }}
     .student-meta {{
-        font-size: 0.9rem;
-        color: #555;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+        font-size: 0.95rem;
+        color: #444 !important;
+        line-height: 1.6;
+        border-top: 1px solid #eee;
+        padding-top: 10px;
     }}
-    .meta-badge {{
-        background: #fff;
-        padding: 2px 8px;
-        border-radius: 4px;
-        border: 1px solid #ddd;
-    }}
-
-    /* 6. TARJETAS DE ASIGNATURAS (DISEÑO MÓVIL) */
-    /* Esto reemplaza a la tabla. Cada materia es un bloque. */
+    
     .subject-card {{
         background-color: white;
-        border: 1px solid #eee;
+        border: 1px solid #f0f0f0;
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: transform 0.2s;
     }}
-    .subject-left {{
-        flex: 1;
-        padding-right: 10px;
-    }}
-    .subject-title {{
-        font-weight: 700;
-        color: #333;
-        font-size: 1rem;
-        margin-bottom: 4px;
-    }}
-    .subject-docente {{
-        font-size: 0.8rem;
-        color: #777;
-    }}
-    .subject-right {{
-        text-align: right;
-        min-width: 80px;
-    }}
-    .grade-display {{
-        font-size: 1.4rem;
-        font-weight: 800;
-        display: block;
-    }}
-    .status-badge {{
-        font-size: 0.7rem;
-        padding: 3px 8px;
-        border-radius: 10px;
-        font-weight: bold;
-        text-transform: uppercase;
-        display: inline-block;
-        margin-top: 4px;
-    }}
-    .nota-esp {{
-        font-size: 0.75rem;
-        color: #d9534f;
-        font-weight: bold;
-        display: block;
-        margin-top: 2px;
-    }}
+    .subject-left {{ flex: 1; padding-right: 15px; }}
+    .subject-title {{ font-weight: 700; color: #222 !important; font-size: 1rem; display: block; }}
+    .subject-docente {{ font-size: 0.85rem; color: #666 !important; display: block; }}
+    .subject-right {{ text-align: right; min-width: 85px; display: flex; flex-direction: column; align-items: flex-end; }}
+    .grade-display {{ font-size: 1.4rem; font-weight: 800; display: block; }}
+    .status-badge {{ font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-top: 4px; }}
+    .nota-esp {{ font-size: 0.75rem; color: #d9534f !important; font-weight: bold; display: block; margin-top: 4px; }}
 
-    /* Ocultar elementos nativos */
     #MainMenu, footer, header {{visibility: hidden;}}
     .stDeployButton {{display:none;}}
     </style>
@@ -203,13 +171,14 @@ def cargar_datos():
     except:
         return None
 
-# --- GENERACIÓN PDF (Lógica mantenida, visualización backend) ---
+# --- GENERACIÓN PDF (MEJORADA) ---
 def generar_pdf(alumno_data, info):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=LETTER, topMargin=40, bottomMargin=40)
     elements = []
     styles = getSampleStyleSheet()
     
+    # 1. ENCABEZADO
     try:
         logo_path = "logo.png"
         if os.path.exists(logo_path):
@@ -233,21 +202,22 @@ def generar_pdf(alumno_data, info):
     elements.append(Paragraph("<b>ACTA DE CALIFICACIONES</b>", ParagraphStyle('S', alignment=TA_CENTER, fontSize=14)))
     elements.append(Spacer(1, 25))
     
-    # Datos Estudiante en PDF
+    # 2. INFO ESTUDIANTE (SIN DOS PUNTOS INNECESARIOS)
     estilo_b = ParagraphStyle('B', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10)
     estilo_n = ParagraphStyle('N', parent=styles['Normal'], fontName='Helvetica', fontSize=10)
     
+    # Eliminamos los ":" de las etiquetas para limpieza visual
     data_info = [
-        [Paragraph("ESTUDIANTE:", estilo_b), Paragraph(info['nombre'], estilo_n), Paragraph("CARNET:", estilo_b), Paragraph(info['carnet'], estilo_n)],
-        [Paragraph("CARRERA:", estilo_b), Paragraph(info['carrera'], estilo_n), "", ""],
-        [Paragraph("AÑO:", estilo_b), Paragraph(info['anio'], estilo_n), Paragraph("CICLO:", estilo_b), Paragraph(f"{info['ciclo']} - {info['regimen']}", estilo_n)]
+        [Paragraph("ESTUDIANTE", estilo_b), Paragraph(info['nombre'], estilo_n), Paragraph("CARNET", estilo_b), Paragraph(info['carnet'], estilo_n)],
+        [Paragraph("CARRERA", estilo_b), Paragraph(info['carrera'], estilo_n), "", ""],
+        [Paragraph("AÑO", estilo_b), Paragraph(info['anio'], estilo_n), Paragraph("CICLO", estilo_b), Paragraph(f"{info['ciclo']} - {info['regimen']}", estilo_n)]
     ]
     t_info = Table(data_info, colWidths=[1.1*inch, 2.9*inch, 1.2*inch, 1.5*inch])
     t_info.setStyle(TableStyle([('SPAN', (1,1), (3,1)), ('VALIGN', (0,0), (-1,-1), 'TOP')]))
     elements.append(t_info)
     elements.append(Spacer(1, 20))
     
-    # Tabla Notas en PDF
+    # 3. TABLA DE NOTAS (ENCABEZADO AZUL COMPLETO)
     data_notas = [['ASIGNATURA', 'DOCENTE', 'NOTA', 'N. ESP.', 'ESTADO']]
     for item in alumno_data:
         data_notas.append([
@@ -258,15 +228,24 @@ def generar_pdf(alumno_data, info):
     
     t_notas = Table(data_notas, colWidths=[2.3*inch, 2.0*inch, 0.7*inch, 0.7*inch, 1.0*inch])
     t_notas.setStyle(TableStyle([
+        # Fondo Azul para TODA la primera fila (0,0) hasta (-1,0)
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#003366")),
+        # Texto Blanco para TODA la primera fila
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        # Filas alternas
         ('ROWBACKGROUNDS', (1,0), (-1,-1), [colors.whitesmoke, colors.white]),
         ('GRID', (0,0), (-1,-1), 0.5, colors.grey)
     ]))
     elements.append(t_notas)
+    
+    # 4. ZONA DE FIRMA (AGREGADO)
+    elements.append(Spacer(1, 60)) # Espacio para firmar
+    elements.append(Paragraph("___________________________________", ParagraphStyle('FirmaLine', alignment=TA_CENTER)))
+    elements.append(Paragraph("Registro Académico", ParagraphStyle('FirmaText', alignment=TA_CENTER, fontSize=10, fontName='Helvetica-Bold')))
+    
     doc.build(elements)
     buffer.seek(0)
     return buffer
@@ -274,13 +253,13 @@ def generar_pdf(alumno_data, info):
 # --- INTERFAZ DE USUARIO ---
 def main():
     
-    # 1. ENCABEZADO HTML (SOLUCIÓN LOGO GRANDE Y TÍTULO UNMRMA)
-    # Ajustamos max-width de la imagen para que se vea grande en movil pero no gigante en PC
+    # 1. ENCABEZADO
     logo_html = f'<img src="data:image/png;base64,{logo_base64}" style="width: 100%; max-width: 250px; height: auto;">' if logo_base64 else ""
     
     st.markdown(f"""
         <div class="header-container">
             {logo_html}
+            <div class="header-subtitle">Consulta de Calificaciones</div>
             <h1 class="univ-title">UNMRMA – CUR-Carazo</h1>
         </div>
     """, unsafe_allow_html=True)
@@ -291,8 +270,7 @@ def main():
         st.error("⚠️ Error: No se encuentra 'Notas.xlsx'.")
         st.stop()
 
-    # 3. INPUT Y BOTÓN (SIN st.form PARA EVITAR ERRORES)
-    # Usamos session_state para controlar si se ha pulsado buscar
+    # 3. INPUT Y BOTÓN
     if 'searched' not in st.session_state:
         st.session_state.searched = False
     if 'carnet_busqueda' not in st.session_state:
@@ -300,16 +278,14 @@ def main():
 
     carnet_input = st.text_input("Ingrese su Nº de Carnet", placeholder="XX-XXXX-XX", label_visibility="collapsed")
     
-    # Botón verde (estilizado por CSS)
     if st.button("CONSULTAR AHORA"):
         st.session_state.searched = True
         st.session_state.carnet_busqueda = carnet_input
 
-    # 4. LÓGICA DE BÚSQUEDA Y VISUALIZACIÓN
+    # 4. LÓGICA
     if st.session_state.searched:
         carnet = st.session_state.carnet_busqueda.strip()
         
-        # Validación
         if not re.match(r"^\d{2}-\d{4}-\d{2}$", carnet):
             st.warning("⚠️ Formato incorrecto. Ejemplo: 25-0022-02")
         else:
@@ -320,23 +296,20 @@ def main():
             else:
                 p = res.iloc[0]
                 
-                # DATOS PERSONALES (Diseño Limpio)
+                # DATOS PERSONALES
                 st.markdown(f"""
                 <div class="student-info-card">
                     <div class="student-name">{p['Nombres y Apellidos']}</div>
                     <div class="student-meta">
-                        <span class="meta-badge">🆔 {p['N° Carnet']}</span>
-                        <span class="meta-badge">📚 {p['Carrera']}</span>
-                        <span class="meta-badge">📅 {p['Año']} | {p['Ciclo']}</span>
+                        <b>Carnet:</b> {p['N° Carnet']} &nbsp;|&nbsp; <b>Carrera:</b> {p['Carrera']}<br>
+                        Año: {p['Año']} &nbsp;|&nbsp; Régimen: {p['Regimen']} &nbsp;|&nbsp; Ciclo: {p['Ciclo']}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-                # TARJETAS DE ASIGNATURAS (LOOP VISUAL)
                 datos_pdf = []
                 
                 for _, row in res.iterrows():
-                    # Lógica de colores y estados
                     nf, ne = str(row['Nota Final']).strip(), str(row['Nota de Especial']).strip()
                     estado_texto, color_nota, color_badge, bg_badge = "APROBADO", "#2e7d32", "#155724", "#d4edda"
                     mostrar_ne_html = ""
@@ -353,13 +326,12 @@ def main():
                         if es_sd:
                             estado_texto, color_nota, color_badge, bg_badge = "SIN DERECHO", "#c62828", "#721c24", "#f8d7da"
 
-                    # HTML DE LA TARJETA (CARD)
-                    # Esto reemplaza a la tabla fea. Se ve genial en movil.
+                    # TARJETA DE MATERIA (HTML LIMPIO)
                     st.markdown(f"""
                     <div class="subject-card">
                         <div class="subject-left">
-                            <div class="subject-title">{row['Asignatura']}</div>
-                            <div class="subject-docente">👨‍🏫 {row['Docente']}</div>
+                            <span class="subject-title">{row['Asignatura']}</span>
+                            <span class="subject-docente">{row['Docente']}</span>
                         </div>
                         <div class="subject-right">
                             <span class="grade-display" style="color: {color_nota}">{nf}</span>
@@ -375,8 +347,7 @@ def main():
                         'estado': estado_texto.title()
                     })
 
-                # BOTÓN PDF (Mismo estilo verde que el de consultar)
-                st.write("") # Espaciador
+                st.write("") 
                 pdf_bytes = generar_pdf(datos_pdf, {
                     'nombre': p['Nombres y Apellidos'], 'carnet': p['N° Carnet'], 
                     'carrera': p['Carrera'], 'anio': p['Año'], 'ciclo': p['Ciclo'], 
@@ -384,7 +355,7 @@ def main():
                 })
                 
                 st.download_button(
-                    label="📥 DESCARGAR REPORTE PDF",
+                    label="DESCARGAR REPORTE PDF",
                     data=pdf_bytes,
                     file_name=f"Notas_{p['N° Carnet']}.pdf",
                     mime="application/pdf"
