@@ -123,13 +123,13 @@ def generar_pdf(alumno_data, info):
             aspect = orig_h / float(orig_w)
             
             # Definir ancho fijo (ej. 1.8 pulgadas) y calcular alto proporcional
-            new_w = 1.8 * inch
-            new_h = new_w * aspect
+            # new_w = 1.8 * inch
+            # new_h = new_w * aspect
             
-            logo = RLImage(logo_path, width=new_w, height=new_h)
+            logo = RLImage(logo_path)
             
             # Nombre Completo en 2 líneas
-            txt_univ = """<font size=12><b>UNIVERSIDAD NACIONAL MULTIDISCIPLINARIA<br/>RICARDO MORALES AVILÉS</b></font>"""
+            txt_univ = """<font size=12><b>UNMRMA – CUR-Carazo</b></font>"""
             
             p_univ = Paragraph(txt_univ, ParagraphStyle('Titulo', parent=styles['Heading1'], alignment=TA_CENTER, leading=16))
             
@@ -351,3 +351,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
