@@ -4,14 +4,16 @@ import re
 import base64
 import os
 from io import BytesIO
+from PIL import Image as PILImage # Para manejar la relación de aspecto del logo
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
 from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Consulta de Notas UNM", page_icon="🎓", layout="centered")
+st.set_page_config(page_title="Consulta de Notas UNMRMA", page_icon="🎓", layout="centered")
 
 # --- FUNCIÓN PARA IMAGEN DE FONDO ---
 def get_base64_of_bin_file(bin_file):
@@ -22,95 +24,71 @@ def get_base64_of_bin_file(bin_file):
     except FileNotFoundError:
         return None
 
-# Cargar imagen de fondo (Asegúrate de tener 'fondo.jpg' en la carpeta)
 img_fondo_base64 = get_base64_of_bin_file("fondo.jpg")
 
-# --- ESTILOS CSS ---
+# --- ESTILOS CSS BLINDADOS (ANTI-DARK MODE) ---
+# Forzamos colores oscuros en los textos para que se vean bien sobre el fondo blanco
 css_style = f"""
     <style>
-    /* 1. Fondo de pantalla con imagen */
+    /* 1. Fondo de pantalla */
     .stApp {{
         background-image: url("data:image/jpg;base64,{img_fondo_base64}");
         background-size: cover;
         background-position: center;
-        background-repeat: no-repeat;
         background-attachment: fixed;
     }}
 
-    /* 2. Contenedor principal blanco semi-transparente para legibilidad */
+    /* 2. Contenedor Principal Blanco */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.92);
-        padding: 3rem;
+        background-color: rgba(255, 255, 255, 0.95); /* Más opaco para evitar problemas de contraste */
+        padding: 2rem;
         border-radius: 15px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        backdrop-filter: blur(4px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         margin-top: 20px;
     }}
 
-    /* 3. Input de texto centrado y grande */
+    /* 3. FORZAR TEXTO OSCURO (Ignorar Dark Mode del navegador) */
+    html, body, [class*="css"] {{
+        color: #2c3e50;
+    }}
+    .stMarkdown, .stText, h1, h2, h3, h4, p, li, label, div {{
+        color: #222222 !important;
+    }}
+    
+    /* Input de Texto */
     .stTextInput > div > div > input {{
         text-align: center;
-        font-size: 1.4rem;
-        letter-spacing: 3px;
-        color: #333;
+        font-size: 1.3rem;
         font-weight: bold;
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 2px solid #ddd;
     }}
 
-    /* 4. BOTÓN VERDE (#58b24c) */
+    /* Botón Verde */
     div[data-testid="stFormSubmitButton"] > button {{
         background-color: #58b24c !important;
         color: white !important;
         border: none;
-        width: 100%;
-        font-size: 1.2rem;
-        padding: 0.5rem;
-        border-radius: 8px;
-        transition: all 0.3s ease;
+        font-weight: bold;
+        transition: transform 0.2s;
     }}
     div[data-testid="stFormSubmitButton"] > button:hover {{
-        background-color: #46963b !important;
-        transform: scale(1.02);
+        transform: scale(1.03);
     }}
 
-    /* 5. Tabla Elegante */
-    .styled-table {{
-        border-collapse: collapse;
-        margin: 25px 0;
-        font-size: 0.95em;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        min-width: 100%;
-        border-radius: 8px 8px 0 0;
-        overflow: hidden;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-    }}
-    .styled-table thead tr {{
-        background-color: #003366;
-        color: #ffffff;
-        text-align: left;
-    }}
-    .styled-table th, .styled-table td {{
-        padding: 12px 15px;
-    }}
-    .styled-table tbody tr {{
-        border-bottom: 1px solid #dddddd;
-        color: #333;
-    }}
-    .styled-table tbody tr:nth-of-type(even) {{
-        background-color: #f3f3f3;
-    }}
-    .styled-table tbody tr:last-of-type {{
-        border-bottom: 2px solid #58b24c;
+    /* Estilo de Tarjetas de Notas */
+    .nota-card {{
+        background-color: #f8f9fa;
+        border-left: 5px solid #003366;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }}
     
-    /* Textos */
-    h1, h2, h3, p, span, div {{
-        color: #2c3e50;
-    }}
-    
-    /* Ocultar elementos de Streamlit */
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    header {{visibility: hidden;}}
+    /* Ocultar elementos extra */
+    #MainMenu, footer, header {{visibility: hidden;}}
     </style>
 """
 st.markdown(css_style, unsafe_allow_html=True)
@@ -123,68 +101,118 @@ def cargar_datos():
             return None
         df = pd.read_excel("Notas.xlsx", sheet_name="Datos", dtype=str)
         df.columns = df.columns.str.strip()
-        df = df.fillna("-") # Rellenar vacíos con guion para evitar errores
+        df = df.fillna("-")
         return df
     except Exception as e:
-        st.error(f"Error leyendo la base de datos: {e}")
         return None
 
-# --- GENERACIÓN PDF ---
-def generar_pdf(alumno_data, info_estudiante):
+# --- GENERACIÓN PDF MEJORADA ---
+def generar_pdf(alumno_data, info):
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=LETTER, topMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=LETTER, topMargin=30, bottomMargin=30)
     elements = []
     styles = getSampleStyleSheet()
     
-    # 1. Encabezado
+    # 1. LOGO Y ENCABEZADO CORREGIDOS
     try:
-        if os.path.exists("logo.png"):
-            logo = Image('logo.png', width=1.2*inch, height=1.2*inch)
-            titulo_texto = "<b>UNIVERSIDAD NACIONAL<br/>ACTA DE CALIFICACIONES</b>"
-            titulo = Paragraph(titulo_texto, styles['Heading1'])
-            t_header = Table([[logo, titulo]], colWidths=[1.5*inch, 4.5*inch])
-            t_header.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
+        logo_path = "logo.png"
+        if os.path.exists(logo_path):
+            # Usar Pillow para obtener dimensiones originales y evitar distorsión
+            img_pil = PILImage.open(logo_path)
+            orig_w, orig_h = img_pil.size
+            aspect = orig_h / float(orig_w)
+            
+            # Definir ancho fijo (ej. 1.8 pulgadas) y calcular alto proporcional
+            new_w = 1.8 * inch
+            new_h = new_w * aspect
+            
+            logo = RLImage(logo_path, width=new_w, height=new_h)
+            
+            # Nombre Completo en 2 líneas
+            txt_univ = """<font size=12><b>UNIVERSIDAD NACIONAL MULTIDISCIPLINARIA<br/>RICARDO MORALES AVILÉS</b></font>"""
+            
+            p_univ = Paragraph(txt_univ, ParagraphStyle('Titulo', parent=styles['Heading1'], alignment=TA_CENTER, leading=16))
+            
+            # Tabla de cabecera para alinear Logo e Institución
+            data_header = [[logo, p_univ]]
+            t_header = Table(data_header, colWidths=[2*inch, 4.5*inch])
+            t_header.setStyle(TableStyle([
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ]))
             elements.append(t_header)
         else:
-            elements.append(Paragraph("<b>REPORTE DE NOTAS</b>", styles['Heading1']))
-    except:
-        elements.append(Paragraph("REPORTE DE NOTAS", styles['Heading1']))
+            elements.append(Paragraph("REPORTE DE NOTAS", styles['Heading1']))
+    except Exception as e:
+        elements.append(Paragraph(f"Error imagen: {e}", styles['Normal']))
 
+    elements.append(Spacer(1, 15))
+    elements.append(Paragraph("<b>ACTA DE CALIFICACIONES</b>", ParagraphStyle('Sub', parent=styles['Normal'], alignment=TA_CENTER, fontSize=14)))
     elements.append(Spacer(1, 20))
     
-    # 2. Datos Estudiante
-    estilo_datos = ParagraphStyle('Datos', parent=styles['Normal'], fontSize=11, leading=14)
-    info_text = f"""
-    <b>ESTUDIANTE:</b> {info_estudiante['nombre']}<br/>
-    <b>CARNET:</b> {info_estudiante['carnet']}<br/>
-    <b>CARRERA:</b> {info_estudiante['carrera']}<br/>
-    <b>PERIODO:</b> {info_estudiante['anio']} - {info_estudiante['ciclo']}
-    """
-    elements.append(Paragraph(info_text, estilo_datos))
+    # 2. DATOS DEL ESTUDIANTE (Con Año, Ciclo y Régimen)
+    # Usamos una tabla invisible para alinear perfectamente los datos
+    
+    style_label = ParagraphStyle('L', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10)
+    style_val = ParagraphStyle('V', parent=styles['Normal'], fontName='Helvetica', fontSize=10)
+    
+    # Fila 1: Nombre y Carnet
+    row1 = [
+        Paragraph("<b>ESTUDIANTE:</b>", style_label), Paragraph(info['nombre'], style_val),
+        Paragraph("<b>CARNET:</b>", style_label), Paragraph(info['carnet'], style_val)
+    ]
+    # Fila 2: Carrera
+    row2 = [Paragraph("<b>CARRERA:</b>", style_label), Paragraph(info['carrera'], style_val), "", ""]
+    
+    # Fila 3: Año, Ciclo, Regimen (Distribuidos)
+    # Concatenamos etiquetas y valores para eficiencia en una sola linea visual o tabla
+    row3 = [
+        Paragraph("<b>AÑO:</b> " + info['anio'], style_val),
+        Paragraph("<b>CICLO:</b> " + info['ciclo'], style_val),
+        Paragraph("<b>RÉGIMEN:</b> " + info['regimen'], style_val),
+        ""
+    ]
+
+    t_info = Table([row1, row2, row3], colWidths=[1.2*inch, 2.5*inch, 1.2*inch, 2*inch])
+    t_info.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('SPAN', (1,1), (3,1)), # Carrera ocupa más espacio
+    ]))
+    elements.append(t_info)
     elements.append(Spacer(1, 20))
     
-    # 3. Tabla
-    data = [['ASIGNATURA', 'DOCENTE', 'NOTA FINAL', 'N. ESPECIAL', 'ESTADO']]
+    # 3. TABLA DE NOTAS
+    data = [['ASIGNATURA', 'DOCENTE', 'NOTA\nFINAL', 'NOTA\nESPECIAL', 'ESTADO']]
+    
     for item in alumno_data:
-        data.append([item['asignatura'], item['docente'], item['nota_final'], item['nota_especial'], item['estado']])
+        data.append([
+            Paragraph(item['asignatura'], styles['Normal']), # Paragraph permite saltos de linea si es muy largo
+            Paragraph(item['docente'], styles['Normal']),
+            item['nota_final'],
+            item['nota_especial'],
+            item['estado']
+        ])
         
-    t = Table(data, colWidths=[2.5*inch, 2.0*inch, 0.9*inch, 0.9*inch, 1*inch])
-    t.setStyle(TableStyle([
+    t_notas = Table(data, colWidths=[2.2*inch, 2.0*inch, 0.8*inch, 0.8*inch, 1.2*inch])
+    t_notas.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#003366")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
         ('FONTSIZE', (0,0), (-1,0), 9),
-        ('BOTTOMPADDING', (0,0), (-1,0), 10),
+        ('BOTTOMPADDING', (0,0), (-1,0), 8),
+        ('TOPPADDING', (0,0), (-1,0), 8),
         ('BACKGROUND', (0,1), (-1,-1), colors.whitesmoke),
-        ('GRID', (0,0), (-1,-1), 1, colors.grey),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
         ('FONTSIZE', (0,1), (-1,-1), 8),
     ]))
-    elements.append(t)
+    elements.append(t_notas)
     
     # Pie
-    elements.append(Spacer(1, 30))
-    elements.append(Paragraph("Documento generado automáticamente por el Sistema de Consultas.", styles['Italic']))
+    elements.append(Spacer(1, 40))
+    elements.append(Paragraph("_______________________________", ParagraphStyle('Firma', alignment=TA_CENTER)))
+    elements.append(Paragraph("Registro Académico", ParagraphStyle('FirmaT', alignment=TA_CENTER, fontSize=9)))
     
     doc.build(elements)
     buffer.seek(0)
@@ -192,152 +220,134 @@ def generar_pdf(alumno_data, info_estudiante):
 
 # --- INTERFAZ PRINCIPAL ---
 def main():
-    # Encabezado con columnas ajustadas para logo grande
-    col_logo, col_titulo = st.columns([1, 2])
-    
-    with col_logo:
-        # Logo más grande y centrado
+    # Encabezado (Logo Izq, Texto Der)
+    col1, col2 = st.columns([1, 3])
+    with col1:
         if os.path.exists("logo.png"):
-            st.image("logo.png", width=180) 
+            st.image("logo.png", width=150)
         else:
-            st.warning("Falta logo.png")
-            
-    with col_titulo:
-        # Espaciado vertical para centrar el texto con el logo
-        st.write("") 
-        st.markdown("<h1 style='text-align: left; color: #003366; margin-bottom: 0;'>Consulta de Notas</h1>", unsafe_allow_html=True)
-        st.markdown("<h4 style='text-align: left; color: #555; margin-top: 0;'>Centro Universitario Regional Carazo</h4>", unsafe_allow_html=True)
-
+            st.warning("⚠️ Cargar logo.png")
+    
+    with col2:
+        st.markdown("""
+        <div style="padding-top: 10px;">
+            <h2 style="margin:0; color:#003366 !important;">Consulta de Calificaciones</h2>
+            <h5 style="margin:0; color:#555 !important;">Universidad Nacional Multidisciplinaria</h5>
+            <h5 style="margin:0; color:#555 !important;">Ricardo Morales Avilés</h5>
+        </div>
+        """, unsafe_allow_html=True)
+    
     st.markdown("---")
 
     df = cargar_datos()
     if df is None:
-        st.error("No se encontró 'Notas.xlsx'. Por favor verifica el archivo.")
+        st.error("Error: No se encontró 'Notas.xlsx'.")
         st.stop()
 
-    # FORMULARIO DE BÚSQUEDA (Permite usar ENTER)
+    # Formulario
     with st.form(key="search_form"):
-        st.markdown("### 🔍 Ingrese sus credenciales")
-        carnet_input = st.text_input(
-            "Número de Carnet", 
-            placeholder="XX-XXXX-XX",
-            help="Escriba su carnet completo con guiones."
-        )
-        
-        # Botón de envío (Verde gracias al CSS)
-        submit_button = st.form_submit_button(label="CONSULTAR NOTAS")
+        st.markdown("##### 🔍 Ingrese número de carnet:")
+        carnet_input = st.text_input("Carnet", placeholder="XX-XXXX-XX", label_visibility="collapsed")
+        submit_button = st.form_submit_button(label="CONSULTAR AHORA")
 
-    # Lógica de búsqueda
     if submit_button:
-        carnet_limpio = carnet_input.strip()
-        patron_carnet = r"^\d{2}-\d{4}-\d{2}$"
-        
-        if not re.match(patron_carnet, carnet_limpio):
-            st.warning("⚠️ Formato inválido. Asegúrese de escribir el carnet correctamente: XX-XXXX-XX")
+        carnet = carnet_input.strip()
+        if not re.match(r"^\d{2}-\d{4}-\d{2}$", carnet):
+            st.warning("⚠️ Formato inválido. Use: XX-XXXX-XX")
         else:
-            resultados = df[df['N° Carnet'] == carnet_limpio]
-            
-            if resultados.empty:
-                st.error(f"❌ No se encontraron registros para el carnet: {carnet_limpio}")
+            res = df[df['N° Carnet'] == carnet]
+            if res.empty:
+                st.error("❌ No encontrado.")
             else:
-                try:
-                    primer = resultados.iloc[0]
-                    # Tarjeta de Info Estudiante
-                    st.markdown(f"""
-                    <div style="background-color: white; border-left: 6px solid #58b24c; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;">
-                        <h2 style="color: #003366; margin:0;">{primer['Nombres y Apellidos']}</h2>
-                        <hr style="margin: 10px 0;">
-                        <div style="display: flex; justify-content: space-between; font-size: 1.1em;">
-                            <span>🎓 <b>Carnet:</b> {primer['N° Carnet']}</span>
-                            <span>📚 <b>Carrera:</b> {primer['Carrera']}</span>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Preparar tabla
-                    filas_html = ""
-                    datos_pdf = []
-                    
-                    for _, row in resultados.iterrows():
-                        asignatura = str(row['Asignatura'])
-                        docente = str(row['Docente'])
-                        nf = str(row['Nota Final']).strip()
-                        ne = str(row['Nota de Especial']).strip()
-                        
-                        estado = "Aprobado"
-                        mostrar_ne = "-"
-                        clase_estado = "color: #333;" # Color normal
+                p = res.iloc[0]
+                
+                # DATOS ESTUDIANTE
+                st.markdown(f"""
+                <div style="background-color: #e3f2fd; padding: 15px; border-radius: 10px; border: 1px solid #90caf9; margin-bottom: 20px;">
+                    <h3 style="color: #003366 !important; margin:0;">{p['Nombres y Apellidos']}</h3>
+                    <p style="margin:5px 0 0 0;"><b>Carnet:</b> {p['N° Carnet']} &nbsp;|&nbsp; <b>Carrera:</b> {p['Carrera']}</p>
+                    <p style="margin:0; font-size: 0.9em; color: #666 !important;">
+                        <b>Año:</b> {p['Año']} &nbsp;|&nbsp; <b>Ciclo:</b> {p['Ciclo']} &nbsp;|&nbsp; <b>Régimen:</b> {p['Regimen']}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
-                        # Lógica Notas
-                        es_sd = (nf.upper() == "SD")
-                        try:
-                            val_nf = float(nf)
-                            if val_nf < 60:
-                                estado = "Reprobado"
-                                clase_estado = "color: #d9534f; font-weight: bold;" # Rojo
-                                if ne and ne != "-" and not es_sd:
-                                    mostrar_ne = ne
-                        except:
-                            if es_sd:
-                                estado = "Sin Derecho"
-                                clase_estado = "color: #d9534f; font-weight: bold;"
-                            else:
-                                estado = "-"
+                # PREPARAR DATOS
+                datos_pdf = []
+                
+                # ENCABEZADOS DE COLUMNAS (Visualización Pantalla)
+                cols = st.columns([3, 2, 1, 1, 1])
+                cols[0].markdown("**Asignatura**")
+                cols[1].markdown("**Docente**")
+                cols[2].markdown("**N. Final**")
+                cols[3].markdown("**N. Esp.**")
+                cols[4].markdown("**Estado**")
+                st.markdown("<hr style='margin: 5px 0'>", unsafe_allow_html=True)
 
-                        filas_html += f"""
-                        <tr>
-                            <td>{asignatura}</td>
-                            <td>{docente}</td>
-                            <td style="font-weight: bold; text-align: center;">{nf}</td>
-                            <td style="text-align: center;">{mostrar_ne}</td>
-                            <td style="{clase_estado}">{estado}</td>
-                        </tr>
-                        """
-                        datos_pdf.append({
-                            'asignatura': asignatura, 'docente': docente,
-                            'nota_final': nf, 'nota_especial': mostrar_ne, 'estado': estado
-                        })
+                for _, row in res.iterrows():
+                    # Procesar valores
+                    nf = str(row['Nota Final']).strip()
+                    ne = str(row['Nota de Especial']).strip()
+                    asig = row['Asignatura']
+                    doc = row['Docente']
                     
-                    # Pintar Tabla
-                    tabla_html = f"""
-                    <table class="styled-table">
-                        <thead>
-                            <tr>
-                                <th>Asignatura</th>
-                                <th>Docente</th>
-                                <th style="text-align: center;">Nota Final</th>
-                                <th style="text-align: center;">Nota Esp.</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filas_html}
-                        </tbody>
-                    </table>
-                    """
-                    st.markdown(tabla_html, unsafe_allow_html=True)
-                    
-                    # Botón PDF
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    col_izq, col_der = st.columns([3, 2])
-                    with col_der:
-                        pdf_data = generar_pdf(datos_pdf, {
-                            'nombre': primer['Nombres y Apellidos'],
-                            'carnet': primer['N° Carnet'],
-                            'carrera': primer['Carrera'],
-                            'anio': primer['Año'],
-                            'ciclo': primer['Ciclo']
-                        })
-                        st.download_button(
-                            label="⬇️ DESCARGAR REPORTE (PDF)",
-                            data=pdf_data,
-                            file_name=f"Notas_{primer['N° Carnet']}.pdf",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
+                    estado = "Aprobado"
+                    color_nota = "black"
+                    bg_estado = "#d4edda" # Verde claro
+                    txt_estado = "#155724" # Verde oscuro
+                    mostrar_ne = "-"
 
-                except Exception as e:
-                    st.error(f"Ocurrió un error al procesar los datos: {e}")
+                    es_sd = (nf.upper() == "SD")
+                    
+                    try:
+                        val_nf = float(nf)
+                        if val_nf < 60:
+                            estado = "Reprobado"
+                            color_nota = "#dc3545" # Rojo
+                            bg_estado = "#f8d7da"
+                            txt_estado = "#721c24"
+                            if ne and ne != "-" and not es_sd:
+                                mostrar_ne = ne
+                    except:
+                        if es_sd:
+                            estado = "Sin Derecho"
+                            color_nota = "#dc3545"
+                            bg_estado = "#f8d7da"
+                            txt_estado = "#721c24"
+
+                    # VISUALIZACIÓN EN PANTALLA (SIN TABLA HTML)
+                    c = st.columns([3, 2, 1, 1, 1])
+                    c[0].write(asig)
+                    c[1].write(doc)
+                    c[2].markdown(f"<span style='color:{color_nota}; font-weight:bold'>{nf}</span>", unsafe_allow_html=True)
+                    c[3].write(mostrar_ne)
+                    c[4].markdown(f"<span style='background-color:{bg_estado}; color:{txt_estado}; padding: 2px 6px; border-radius:4px; font-size:0.8em'>{estado}</span>", unsafe_allow_html=True)
+                    
+                    st.markdown("<div style='border-bottom: 1px solid #eee; margin-bottom: 8px'></div>", unsafe_allow_html=True)
+
+                    datos_pdf.append({
+                        'asignatura': asig, 'docente': doc,
+                        'nota_final': nf, 'nota_especial': mostrar_ne, 'estado': estado
+                    })
+
+                # BOTÓN PDF
+                st.write("")
+                pdf_data = generar_pdf(datos_pdf, {
+                    'nombre': p['Nombres y Apellidos'],
+                    'carnet': p['N° Carnet'],
+                    'carrera': p['Carrera'],
+                    'anio': p['Año'],
+                    'ciclo': p['Ciclo'],
+                    'regimen': p['Regimen']
+                })
+                
+                st.download_button(
+                    "⬇️ Descargar Reporte PDF",
+                    data=pdf_data,
+                    file_name=f"Notas_{p['N° Carnet']}.pdf",
+                    mime="application/pdf",
+                    type="primary"
+                )
 
 if __name__ == "__main__":
     main()
