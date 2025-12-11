@@ -71,21 +71,21 @@ css_style = f"""
     /* NUEVOS ESTILOS PARA TÍTULO DIVIDIDO */
     .univ-title-main {{
         color: #003366 !important;
-        font-size: 1.5rem;
-        font-weight: 800;
+        font-size: 1.8rem;
+        font-weight: 900;
         margin-top: 5px;
         margin-bottom: 0;
-        line-height: 1.0;
+        line-height: 1.2;
         letter-spacing: 1px;
     }}
     .univ-title-sub {{
         color: #003366 !important;
         font-size: 1.2rem;
-        font-weight: 600;
+        font-weight: 700;
         margin-top: 0;
         margin-bottom: 10px;
         line-height: 1.2;
-        letter-spacing: 2px; /* Separación elegante */
+        letter-spacing: 0.5px; /* Separación elegante */
     }}
 
     /* 4. INPUT Y BOTONES */
@@ -448,3 +448,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
