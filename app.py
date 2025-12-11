@@ -339,7 +339,7 @@ def main():
                     <div class="student-name">{p['Nombres y Apellidos']}</div>
                     <div class="student-meta">
                         <b>Carnet:</b> {p['N° Carnet']} &nbsp;|&nbsp; <b>Carrera:</b> {p['Carrera']}<br>
-                        Año: {p['Año']} &nbsp;|&nbsp; Régimen: {p['Regimen']} &nbsp;|&nbsp; Ciclo: {p['Ciclo']}
+                        <b>Año:</b> {p['Año']} &nbsp;|&nbsp; <b>Régimen:</b> {p['Regimen']} &nbsp;|&nbsp; <b>Ciclo:</b> {p['Ciclo']}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -434,4 +434,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
