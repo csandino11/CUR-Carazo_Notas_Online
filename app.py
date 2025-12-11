@@ -40,7 +40,7 @@ css_style = f"""
     
     /* 2. CONTENEDOR DIFUMINADO */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.88);
+        background-color: rgba(255, 255, 255, 0.75);
         border-radius: 0px 0px 20px 20px;
         padding: 1rem 1rem 3rem 1rem;
         max-width: 800px;
@@ -69,7 +69,7 @@ css_style = f"""
     }}
     .univ-title {{
         color: #003366 !important;
-        font-size: 1.25rem; /* AJUSTADO: Más pequeño para caber en una línea móvil */
+        font-size: 1rem; /* AJUSTADO: Más pequeño para caber en una línea móvil */
         font-weight: 800;
         margin-top: 5px;
         line-height: 1.2;
@@ -394,3 +394,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
