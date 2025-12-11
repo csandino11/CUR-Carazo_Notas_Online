@@ -69,7 +69,7 @@ css_style = f"""
     }}
     .univ-title {{
         color: #003366 !important;
-        font-size: 1.5rem;
+        font-size: 1.25rem; /* AJUSTADO: Más pequeño para caber en una línea móvil */
         font-weight: 800;
         margin-top: 5px;
         line-height: 1.2;
@@ -90,7 +90,7 @@ css_style = f"""
         box-shadow: 0 0 0 2px rgba(88, 178, 76, 0.2);
     }}
 
-    /* 5. BOTONES VERDES (TODOS) */
+    /* 5. BOTONES VERDES */
     div.stButton > button, div.stDownloadButton > button {{
         background-color: #58b24c !important;
         color: white !important;
@@ -276,7 +276,6 @@ def main():
         st.session_state.searched = False
     if 'carnet_busqueda' not in st.session_state:
         st.session_state.carnet_busqueda = ""
-    # Nuevo estado para manejar la selección de usuario cuando hay duplicados
     if 'selected_student_name' not in st.session_state:
         st.session_state.selected_student_name = None
 
@@ -285,7 +284,6 @@ def main():
     if st.button("CONSULTAR AHORA"):
         st.session_state.searched = True
         st.session_state.carnet_busqueda = carnet_input
-        # Reiniciar selección al hacer nueva búsqueda
         st.session_state.selected_student_name = None 
 
     # 4. LÓGICA PRINCIPAL
@@ -295,48 +293,34 @@ def main():
         if not re.match(r"^\d{2}-\d{4}-\d{2}$", carnet):
             st.warning("⚠️ Formato incorrecto. Ejemplo: 25-0022-02")
         else:
-            # Filtrar por carnet
             res_raw = df[df['N° Carnet'] == carnet]
             
             if res_raw.empty:
                 st.error("❌ No se encontraron registros con ese carnet.")
             else:
-                # --- LÓGICA DE DETECCIÓN DE DUPLICADOS ---
-                # Obtener lista de nombres únicos asociados a ese carnet
                 nombres_unicos = res_raw['Nombres y Apellidos'].unique()
-                
                 nombre_seleccionado = None
                 
-                # CASO A: Solo hay 1 estudiante con ese carnet (Lo normal)
+                # SELECCIÓN DE USUARIO (SI HAY DUPLICADOS)
                 if len(nombres_unicos) == 1:
                     nombre_seleccionado = nombres_unicos[0]
-                
-                # CASO B: Hay múltiples estudiantes con el mismo carnet (Error de datos o duplicidad)
                 else:
-                    # Si el usuario ya eligió, usamos ese nombre
                     if st.session_state.selected_student_name:
                         nombre_seleccionado = st.session_state.selected_student_name
                     else:
-                        # Si no ha elegido, mostramos pantalla de selección
                         st.markdown('<h3 class="selection-title">¿Quién eres?</h3>', unsafe_allow_html=True)
                         st.info("Hemos encontrado varios estudiantes con este número de carnet. Por favor selecciona tu nombre:")
                         
                         for nombre in nombres_unicos:
-                            # Generamos un botón por cada nombre
                             if st.button(f"👤 {nombre}", key=nombre):
                                 st.session_state.selected_student_name = nombre
-                                st.rerun() # Recargamos la app para mostrar las notas
-                        
-                        st.stop() # Detenemos la ejecución aquí hasta que seleccione
+                                st.rerun()
+                        st.stop()
 
-                # --- MOSTRAR NOTAS (Solo llega aquí si ya tenemos un nombre único o seleccionado) ---
-                
-                # Filtramos el dataframe original usando carnet Y el nombre específico
+                # MOSTRAR NOTAS
                 res = res_raw[res_raw['Nombres y Apellidos'] == nombre_seleccionado]
-                
                 p = res.iloc[0]
                 
-                # DATOS PERSONALES
                 st.markdown(f"""
                 <div class="student-info-card">
                     <div class="student-name">{p['Nombres y Apellidos']}</div>
@@ -350,12 +334,15 @@ def main():
                 datos_pdf = []
                 
                 for _, row in res.iterrows():
+                    # REINICIAMOS LA VARIABLE HTML EN CADA ITERACIÓN
+                    mostrar_ne_html = "" 
+                    
                     nf = str(row['Nota Final']).strip()
                     ne_raw = str(row['Nota de Especial']).strip()
+                    # Validación estricta de que exista un dato en Nota Especial
                     ne = ne_raw if ne_raw and ne_raw.lower() != "nan" and ne_raw != "-" else ""
                     
                     estado_texto, color_nota, color_badge, bg_badge = "APROBADO", "#2e7d32", "#155724", "#d4edda"
-                    mostrar_ne_html = "" # Inicializar siempre vacía para evitar errores
                     
                     es_sd = (nf.upper() == "SD")
                     
@@ -363,14 +350,14 @@ def main():
                         val = float(nf)
                         if val < 60:
                             estado_texto, color_nota, color_badge, bg_badge = "REPROBADO", "#c62828", "#721c24", "#f8d7da"
+                            # LÓGICA CORREGIDA: Solo si reprobado, no es SD y existe nota especial
                             if not es_sd and ne:
                                 mostrar_ne_html = f'<span class="nota-esp">Nota Esp: {ne}</span>'
                     except:
                         if es_sd:
                             estado_texto, color_nota, color_badge, bg_badge = "SIN DERECHO", "#c62828", "#721c24", "#f8d7da"
 
-                    # TARJETA DE MATERIA (CORRECCIÓN HTML PARA EVITAR DIVS FANTASMAS)
-                    # La clave es asegurar que {mostrar_ne_html} no rompa la estructura si está vacío
+                    # TARJETA COMPACTA (Evita saltos de línea extraños en el HTML)
                     st.markdown(f"""
                     <div class="subject-card">
                         <div class="subject-left">
@@ -382,8 +369,7 @@ def main():
                             <span class="status-badge" style="background-color: {bg_badge}; color: {color_badge}">{estado_texto}</span>
                             {mostrar_ne_html}
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    </div>""", unsafe_allow_html=True)
 
                     datos_pdf.append({
                         'asignatura': row['Asignatura'], 'docente': row['Docente'], 
@@ -398,8 +384,9 @@ def main():
                     'regimen': p['Regimen']
                 })
                 
+                # BOTÓN RENOMBRADO
                 st.download_button(
-                    label="DESCARGAR REPORTE PDF",
+                    label="Descargar Esquela de Notas ⬇️",
                     data=pdf_bytes,
                     file_name=f"Notas_{p['N° Carnet']}.pdf",
                     mime="application/pdf"
