@@ -27,7 +27,7 @@ def get_base64_of_bin_file(bin_file):
 img_fondo_base64 = get_base64_of_bin_file("fondo.jpg")
 logo_base64 = get_base64_of_bin_file("logo.png")
 
-# --- CSS: DISEÑO "MOBILE FIRST" FINAL ---
+# --- CSS: DISEÑO FINAL ---
 css_style = f"""
     <style>
     /* 1. FONDO MOSAICO */
@@ -38,9 +38,9 @@ css_style = f"""
         background-size: auto;
     }}
     
-    /* 2. CONTENEDOR DIFUMINADO */
+    /* 2. CONTENEDOR */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.75);
+        background-color: rgba(255, 255, 255, 0.88);
         border-radius: 0px 0px 20px 20px;
         padding: 1rem 1rem 3rem 1rem;
         max-width: 800px;
@@ -69,13 +69,13 @@ css_style = f"""
     }}
     .univ-title {{
         color: #003366 !important;
-        font-size: 1rem; /* AJUSTADO: Más pequeño para caber en una línea móvil */
+        font-size: 1.5rem;
         font-weight: 800;
         margin-top: 5px;
         line-height: 1.2;
     }}
 
-    /* 4. INPUT DE CARNET */
+    /* 4. INPUT Y BOTONES */
     .stTextInput > div > div > input {{
         text-align: center;
         font-size: 1.4rem;
@@ -90,7 +90,6 @@ css_style = f"""
         box-shadow: 0 0 0 2px rgba(88, 178, 76, 0.2);
     }}
 
-    /* 5. BOTONES VERDES */
     div.stButton > button, div.stDownloadButton > button {{
         background-color: #58b24c !important;
         color: white !important;
@@ -113,7 +112,7 @@ css_style = f"""
         box-shadow: 0 6px 12px rgba(0,0,0,0.15);
     }}
 
-    /* 6. ESTILOS DE TARJETAS */
+    /* 5. TARJETAS */
     .student-info-card {{
         background: #ffffff;
         border-left: 5px solid #003366;
@@ -136,6 +135,7 @@ css_style = f"""
         padding-top: 10px;
     }}
     
+    /* Tarjeta de Asignatura (Estructura Fija) */
     .subject-card {{
         background-color: white;
         border: 1px solid #f0f0f0;
@@ -150,12 +150,25 @@ css_style = f"""
     .subject-left {{ flex: 1; padding-right: 15px; }}
     .subject-title {{ font-weight: 700; color: #222 !important; font-size: 1rem; display: block; }}
     .subject-docente {{ font-size: 0.85rem; color: #666 !important; display: block; }}
-    .subject-right {{ text-align: right; min-width: 85px; display: flex; flex-direction: column; align-items: flex-end; }}
-    .grade-display {{ font-size: 1.4rem; font-weight: 800; display: block; }}
-    .status-badge {{ font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-top: 4px; }}
-    .nota-esp {{ font-size: 0.75rem; color: #d9534f !important; font-weight: bold; display: block; margin-top: 4px; }}
+    
+    .subject-right {{ 
+        text-align: right; 
+        min-width: 90px; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: flex-end; 
+    }}
+    .grade-display {{ font-size: 1.5rem; font-weight: 800; display: block; }}
+    .status-badge {{ 
+        font-size: 0.75rem; 
+        padding: 4px 10px; 
+        border-radius: 12px; 
+        font-weight: bold; 
+        text-transform: uppercase; 
+        display: inline-block; 
+        margin-top: 5px; 
+    }}
 
-    /* Título de selección de usuario */
     .selection-title {{
         text-align: center;
         color: #003366;
@@ -180,13 +193,14 @@ def cargar_datos():
     except:
         return None
 
-# --- GENERACIÓN PDF (INTACTA) ---
+# --- GENERACIÓN PDF ---
 def generar_pdf(alumno_data, info):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=LETTER, topMargin=40, bottomMargin=40)
     elements = []
     styles = getSampleStyleSheet()
     
+    # ENCABEZADO
     try:
         logo_path = "logo.png"
         if os.path.exists(logo_path):
@@ -210,6 +224,7 @@ def generar_pdf(alumno_data, info):
     elements.append(Paragraph("<b>ACTA DE CALIFICACIONES</b>", ParagraphStyle('S', alignment=TA_CENTER, fontSize=14)))
     elements.append(Spacer(1, 25))
     
+    # INFO ESTUDIANTE
     estilo_b = ParagraphStyle('B', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10)
     estilo_n = ParagraphStyle('N', parent=styles['Normal'], fontName='Helvetica', fontSize=10)
     
@@ -223,6 +238,8 @@ def generar_pdf(alumno_data, info):
     elements.append(t_info)
     elements.append(Spacer(1, 20))
     
+    # TABLA DE NOTAS
+    # Corrección de "Aprobado con Especial" en Estado
     data_notas = [['ASIGNATURA', 'DOCENTE', 'NOTA', 'N. ESP.', 'ESTADO']]
     for item in alumno_data:
         data_notas.append([
@@ -233,11 +250,13 @@ def generar_pdf(alumno_data, info):
     
     t_notas = Table(data_notas, colWidths=[2.3*inch, 2.0*inch, 0.7*inch, 0.7*inch, 1.0*inch])
     t_notas.setStyle(TableStyle([
+        # ENCABEZADO AZUL SOLIDO (Col 0 a Col final de la Fila 0)
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#003366")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        # FILAS ALTERNAS (Empieza Fila 1)
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.white]),
         ('GRID', (0,0), (-1,-1), 0.5, colors.grey)
     ]))
@@ -254,7 +273,6 @@ def generar_pdf(alumno_data, info):
 # --- INTERFAZ DE USUARIO ---
 def main():
     
-    # 1. ENCABEZADO
     logo_html = f'<img src="data:image/png;base64,{logo_base64}" style="width: 100%; max-width: 250px; height: auto;">' if logo_base64 else ""
     
     st.markdown(f"""
@@ -265,13 +283,11 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    # 2. CARGA DE DATOS
     df = cargar_datos()
     if df is None:
         st.error("⚠️ Error: No se encuentra 'Notas.xlsx'.")
         st.stop()
 
-    # 3. GESTIÓN DE ESTADO (SESSION STATE)
     if 'searched' not in st.session_state:
         st.session_state.searched = False
     if 'carnet_busqueda' not in st.session_state:
@@ -286,7 +302,6 @@ def main():
         st.session_state.carnet_busqueda = carnet_input
         st.session_state.selected_student_name = None 
 
-    # 4. LÓGICA PRINCIPAL
     if st.session_state.searched:
         carnet = st.session_state.carnet_busqueda.strip()
         
@@ -301,23 +316,22 @@ def main():
                 nombres_unicos = res_raw['Nombres y Apellidos'].unique()
                 nombre_seleccionado = None
                 
-                # SELECCIÓN DE USUARIO (SI HAY DUPLICADOS)
+                # CASO A: Solo 1 estudiante
                 if len(nombres_unicos) == 1:
                     nombre_seleccionado = nombres_unicos[0]
+                # CASO B: Múltiples (Duplicados)
                 else:
                     if st.session_state.selected_student_name:
                         nombre_seleccionado = st.session_state.selected_student_name
                     else:
                         st.markdown('<h3 class="selection-title">¿Quién eres?</h3>', unsafe_allow_html=True)
-                        st.info("Hemos encontrado varios estudiantes con este número de carnet. Por favor selecciona tu nombre:")
-                        
+                        st.info("Carnet asociado a varios estudiantes. Selecciona tu nombre:")
                         for nombre in nombres_unicos:
                             if st.button(f"👤 {nombre}", key=nombre):
                                 st.session_state.selected_student_name = nombre
                                 st.rerun()
                         st.stop()
 
-                # MOSTRAR NOTAS
                 res = res_raw[res_raw['Nombres y Apellidos'] == nombre_seleccionado]
                 p = res.iloc[0]
                 
@@ -334,30 +348,57 @@ def main():
                 datos_pdf = []
                 
                 for _, row in res.iterrows():
-                    # REINICIAMOS LA VARIABLE HTML EN CADA ITERACIÓN
-                    mostrar_ne_html = "" 
-                    
                     nf = str(row['Nota Final']).strip()
                     ne_raw = str(row['Nota de Especial']).strip()
-                    # Validación estricta de que exista un dato en Nota Especial
                     ne = ne_raw if ne_raw and ne_raw.lower() != "nan" and ne_raw != "-" else ""
                     
-                    estado_texto, color_nota, color_badge, bg_badge = "APROBADO", "#2e7d32", "#155724", "#d4edda"
+                    # --- LÓGICA DE 3 ESTADOS (COLORES) ---
+                    # 1. Aprobado (Verde)
+                    # 2. Reprobado (Rojo)
+                    # 3. Especial (Azul)
                     
-                    es_sd = (nf.upper() == "SD")
+                    estado_app = "APROBADO"
+                    estado_pdf = "Aprobado"
+                    
+                    # Colores por defecto (Aprobado/Verde)
+                    color_nota = "#2e7d32" 
+                    bg_badge = "#d4edda"
+                    color_badge = "#155724"
+                    
+                    es_sd = (nf.upper() == "SD" or nf.upper() == "NSP")
                     
                     try:
-                        val = float(nf)
-                        if val < 60:
-                            estado_texto, color_nota, color_badge, bg_badge = "REPROBADO", "#c62828", "#721c24", "#f8d7da"
-                            # LÓGICA CORREGIDA: Solo si reprobado, no es SD y existe nota especial
-                            if not es_sd and ne:
-                                mostrar_ne_html = f'<span class="nota-esp">Nota Esp: {ne}</span>'
+                        val_nf = float(nf)
+                        if val_nf < 60:
+                            # Evaluamos si califica como Especial (tiene nota numérica en NE)
+                            es_especial = (ne and re.match(r"^\d+(\.\d+)?$", ne))
+                            
+                            if es_especial:
+                                # ESTADO: ESPECIAL (AZUL)
+                                estado_app = "ESPECIAL"
+                                estado_pdf = "Aprobado con Especial"
+                                color_nota = "#0056b3" # Azul fuerte
+                                bg_badge = "#cce5ff"   # Azul claro fondo
+                                color_badge = "#004085" # Azul texto
+                            else:
+                                # ESTADO: REPROBADO (ROJO)
+                                estado_app = "REPROBADO"
+                                estado_pdf = "Reprobado"
+                                color_nota = "#c62828" 
+                                bg_badge = "#f8d7da"
+                                color_badge = "#721c24"
                     except:
+                        # Si es SD, NSP o texto no numérico
+                        estado_app = nf.upper() if len(nf) < 12 else "REPROBADO"
+                        estado_pdf = "Reprobado" # En PDF suele ponerse Sin Derecho o Reprobado
                         if es_sd:
-                            estado_texto, color_nota, color_badge, bg_badge = "SIN DERECHO", "#c62828", "#721c24", "#f8d7da"
+                             estado_pdf = "Sin Derecho"
+                        
+                        color_nota = "#c62828"
+                        bg_badge = "#f8d7da"
+                        color_badge = "#721c24"
 
-                    # TARJETA COMPACTA (Evita saltos de línea extraños en el HTML)
+                    # TARJETA HTML (ESTRUCTURA FIJA = 0 ERRORES)
                     st.markdown(f"""
                     <div class="subject-card">
                         <div class="subject-left">
@@ -366,15 +407,15 @@ def main():
                         </div>
                         <div class="subject-right">
                             <span class="grade-display" style="color: {color_nota}">{nf}</span>
-                            <span class="status-badge" style="background-color: {bg_badge}; color: {color_badge}">{estado_texto}</span>
-                            {mostrar_ne_html}
+                            <span class="status-badge" style="background-color: {bg_badge}; color: {color_badge}">{estado_app}</span>
                         </div>
-                    </div>""", unsafe_allow_html=True)
+                    </div>
+                    """, unsafe_allow_html=True)
 
                     datos_pdf.append({
                         'asignatura': row['Asignatura'], 'docente': row['Docente'], 
-                        'nota_final': nf, 'nota_especial': ne if mostrar_ne_html else "-", 
-                        'estado': estado_texto.title()
+                        'nota_final': nf, 'nota_especial': ne if ne else "-", 
+                        'estado': estado_pdf
                     })
 
                 st.write("") 
@@ -384,9 +425,8 @@ def main():
                     'regimen': p['Regimen']
                 })
                 
-                # BOTÓN RENOMBRADO
                 st.download_button(
-                    label="Descargar Esquela de Notas ⬇️",
+                    label="DESCARGAR REPORTE PDF",
                     data=pdf_bytes,
                     file_name=f"Notas_{p['N° Carnet']}.pdf",
                     mime="application/pdf"
@@ -394,4 +434,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
