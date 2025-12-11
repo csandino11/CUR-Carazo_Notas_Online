@@ -38,9 +38,9 @@ css_style = f"""
         background-size: auto;
     }}
     
-    /* 2. CONTENEDOR (Transparencia ajustada al 75%) */
+    /* 2. CONTENEDOR (Transparencia 75% intacta) */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.75); /* Cambio solicitado: 0.75 */
+        background-color: rgba(255, 255, 255, 0.75);
         border-radius: 0px 0px 20px 20px;
         padding: 1rem 1rem 3rem 1rem;
         max-width: 800px;
@@ -68,13 +68,24 @@ css_style = f"""
         letter-spacing: 1px;
     }}
     
-    /* TITULO REDUCIDO PARA MÓVIL (Cambio solicitado: 1rem) */
-    .univ-title {{
+    /* NUEVOS ESTILOS PARA TÍTULO DIVIDIDO */
+    .univ-title-main {{
         color: #003366 !important;
-        font-size: 1rem; /* Reducido un 30% aprox para que entre en una linea */
+        font-size: 1.5rem;
         font-weight: 800;
         margin-top: 5px;
+        margin-bottom: 0;
+        line-height: 1.0;
+        letter-spacing: 1px;
+    }}
+    .univ-title-sub {{
+        color: #003366 !important;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-top: 0;
+        margin-bottom: 10px;
         line-height: 1.2;
+        letter-spacing: 2px; /* Separación elegante */
     }}
 
     /* 4. INPUT Y BOTONES */
@@ -136,6 +147,10 @@ css_style = f"""
         border-top: 1px solid #eee;
         padding-top: 10px;
     }}
+    /* Estilo para filas de datos del estudiante */
+    .meta-row {{
+        margin-bottom: 4px;
+    }}
     
     /* Tarjeta de Asignatura (Estructura Fija) */
     .subject-card {{
@@ -195,7 +210,7 @@ def cargar_datos():
     except:
         return None
 
-# --- GENERACIÓN PDF ---
+# --- GENERACIÓN PDF (INTACTA) ---
 def generar_pdf(alumno_data, info):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=LETTER, topMargin=40, bottomMargin=40)
@@ -274,11 +289,13 @@ def main():
     
     logo_html = f'<img src="data:image/png;base64,{logo_base64}" style="width: 100%; max-width: 250px; height: auto;">' if logo_base64 else ""
     
+    # 1. ENCABEZADO DIVIDIDO (SOLUCIÓN MÓVIL)
     st.markdown(f"""
         <div class="header-container">
             {logo_html}
             <div class="header-subtitle">Consulta de Calificaciones</div>
-            <h1 class="univ-title">UNMRMA – CUR-Carazo</h1>
+            <h1 class="univ-title-main">UNMRMA</h1>
+            <h2 class="univ-title-sub">CUR-CARAZO</h2>
         </div>
     """, unsafe_allow_html=True)
 
@@ -334,12 +351,17 @@ def main():
                 res = res_raw[res_raw['Nombres y Apellidos'] == nombre_seleccionado]
                 p = res.iloc[0]
                 
+                # DATOS PERSONALES REORGANIZADOS
+                # Carnet en línea 1, Carrera en línea 2, Metadatos abajo en negrita
                 st.markdown(f"""
                 <div class="student-info-card">
                     <div class="student-name">{p['Nombres y Apellidos']}</div>
                     <div class="student-meta">
-                        <b>Carnet:</b> {p['N° Carnet']} &nbsp;|&nbsp; <b>Carrera:</b> {p['Carrera']}<br>
-                        Año: {p['Año']} &nbsp;|&nbsp; Régimen: {p['Regimen']} &nbsp;|&nbsp; Ciclo: {p['Ciclo']}
+                        <div class="meta-row"><b>Carnet:</b> {p['N° Carnet']}</div>
+                        <div class="meta-row"><b>Carrera:</b> {p['Carrera']}</div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; color: #555;">
+                            <b>Año:</b> {p['Año']} &nbsp;|&nbsp; <b>Régimen:</b> {p['Regimen']} &nbsp;|&nbsp; <b>Ciclo:</b> {p['Ciclo']}
+                        </div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -352,14 +374,9 @@ def main():
                     ne = ne_raw if ne_raw and ne_raw.lower() != "nan" and ne_raw != "-" else ""
                     
                     # --- LÓGICA DE 3 ESTADOS (COLORES) ---
-                    # 1. Aprobado (Verde)
-                    # 2. Reprobado (Rojo)
-                    # 3. Especial (Azul)
-                    
                     estado_app = "APROBADO"
-                    estado_pdf = "Aprobado" # Por defecto
+                    estado_pdf = "Aprobado" 
                     
-                    # Colores por defecto (Aprobado/Verde)
                     color_nota = "#2e7d32" 
                     bg_badge = "#d4edda"
                     color_badge = "#155724"
@@ -369,26 +386,23 @@ def main():
                     try:
                         val_nf = float(nf)
                         if val_nf < 60:
-                            # Evaluamos si califica como Especial (tiene nota numérica en NE)
                             es_especial = (ne and re.match(r"^\d+(\.\d+)?$", ne))
                             
                             if es_especial:
-                                # ESTADO: ESPECIAL (AZUL)
+                                # ESTADO: ESPECIAL
                                 estado_app = "ESPECIAL"
-                                # Cambio solicitado: En PDF dice "Aprobado", en App dice "ESPECIAL"
                                 estado_pdf = "Aprobado" 
-                                color_nota = "#0056b3" # Azul fuerte
-                                bg_badge = "#cce5ff"   # Azul claro fondo
-                                color_badge = "#004085" # Azul texto
+                                color_nota = "#0056b3" 
+                                bg_badge = "#cce5ff"   
+                                color_badge = "#004085" 
                             else:
-                                # ESTADO: REPROBADO (ROJO)
+                                # ESTADO: REPROBADO
                                 estado_app = "REPROBADO"
                                 estado_pdf = "Reprobado"
                                 color_nota = "#c62828" 
                                 bg_badge = "#f8d7da"
                                 color_badge = "#721c24"
                     except:
-                        # Si es SD, NSP o texto no numérico
                         estado_app = nf.upper() if len(nf) < 12 else "REPROBADO"
                         estado_pdf = "Reprobado" 
                         if es_sd:
@@ -426,7 +440,7 @@ def main():
                 })
                 
                 st.download_button(
-                    label="DESCARGAR REPORTE PDF",
+                    label="Descargar Esquela de Notas ⬇️",
                     data=pdf_bytes,
                     file_name=f"Notas_{p['N° Carnet']}.pdf",
                     mime="application/pdf"
