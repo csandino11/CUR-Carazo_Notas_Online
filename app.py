@@ -49,7 +49,7 @@ css_style = f"""
         backdrop-filter: blur(5px);
     }}
 
-    /* 3. TIPOGRAFÍA Y TEXTOS (MODO OSCURO BLINDADO) */
+    /* 3. TIPOGRAFÍA */
     html, body, [class*="css"] {{
         font-family: 'Roboto', 'Segoe UI', sans-serif;
         color: #222;
@@ -90,7 +90,7 @@ css_style = f"""
         box-shadow: 0 0 0 2px rgba(88, 178, 76, 0.2);
     }}
 
-    /* 5. BOTONES VERDES (Consultar y Descargar) */
+    /* 5. BOTONES VERDES (TODOS) */
     div.stButton > button, div.stDownloadButton > button {{
         background-color: #58b24c !important;
         color: white !important;
@@ -102,6 +102,7 @@ css_style = f"""
         width: 100%;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         transition: all 0.2s;
+        margin-bottom: 10px;
     }}
     div.stButton > button:active, div.stDownloadButton > button:active {{
         transform: scale(0.98);
@@ -135,7 +136,6 @@ css_style = f"""
         padding-top: 10px;
     }}
     
-    /* Tarjeta de Asignatura (Flexbox) */
     .subject-card {{
         background-color: white;
         border: 1px solid #f0f0f0;
@@ -150,17 +150,18 @@ css_style = f"""
     .subject-left {{ flex: 1; padding-right: 15px; }}
     .subject-title {{ font-weight: 700; color: #222 !important; font-size: 1rem; display: block; }}
     .subject-docente {{ font-size: 0.85rem; color: #666 !important; display: block; }}
-    
-    .subject-right {{ 
-        text-align: right; 
-        min-width: 85px; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: flex-end; 
-    }}
+    .subject-right {{ text-align: right; min-width: 85px; display: flex; flex-direction: column; align-items: flex-end; }}
     .grade-display {{ font-size: 1.4rem; font-weight: 800; display: block; }}
     .status-badge {{ font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-top: 4px; }}
     .nota-esp {{ font-size: 0.75rem; color: #d9534f !important; font-weight: bold; display: block; margin-top: 4px; }}
+
+    /* Título de selección de usuario */
+    .selection-title {{
+        text-align: center;
+        color: #003366;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }}
 
     #MainMenu, footer, header {{visibility: hidden;}}
     .stDeployButton {{display:none;}}
@@ -175,19 +176,17 @@ def cargar_datos():
     try:
         df = pd.read_excel("Notas.xlsx", sheet_name="Datos", dtype=str)
         df.columns = df.columns.str.strip()
-        # Rellenar vacíos con guión para evitar problemas de nan
         return df.fillna("-")
     except:
         return None
 
-# --- GENERACIÓN PDF (CORREGIDA) ---
+# --- GENERACIÓN PDF (INTACTA) ---
 def generar_pdf(alumno_data, info):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=LETTER, topMargin=40, bottomMargin=40)
     elements = []
     styles = getSampleStyleSheet()
     
-    # 1. ENCABEZADO
     try:
         logo_path = "logo.png"
         if os.path.exists(logo_path):
@@ -211,7 +210,6 @@ def generar_pdf(alumno_data, info):
     elements.append(Paragraph("<b>ACTA DE CALIFICACIONES</b>", ParagraphStyle('S', alignment=TA_CENTER, fontSize=14)))
     elements.append(Spacer(1, 25))
     
-    # 2. INFO ESTUDIANTE
     estilo_b = ParagraphStyle('B', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10)
     estilo_n = ParagraphStyle('N', parent=styles['Normal'], fontName='Helvetica', fontSize=10)
     
@@ -225,7 +223,6 @@ def generar_pdf(alumno_data, info):
     elements.append(t_info)
     elements.append(Spacer(1, 20))
     
-    # 3. TABLA DE NOTAS (CORRECCIÓN DE COLOR ENCABEZADOS)
     data_notas = [['ASIGNATURA', 'DOCENTE', 'NOTA', 'N. ESP.', 'ESTADO']]
     for item in alumno_data:
         data_notas.append([
@@ -236,21 +233,16 @@ def generar_pdf(alumno_data, info):
     
     t_notas = Table(data_notas, colWidths=[2.3*inch, 2.0*inch, 0.7*inch, 0.7*inch, 1.0*inch])
     t_notas.setStyle(TableStyle([
-        # Fondo Azul para TODO el encabezado (Fila 0)
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#003366")),
-        # Texto Blanco para TODO el encabezado
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        # Alineación
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        # Filas alternas (IMPORTANTE: empezar en (0,1) que es Col 0, Fila 1)
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.white]),
         ('GRID', (0,0), (-1,-1), 0.5, colors.grey)
     ]))
     elements.append(t_notas)
     
-    # 4. ZONA DE FIRMA
     elements.append(Spacer(1, 60))
     elements.append(Paragraph("___________________________________", ParagraphStyle('FirmaLine', alignment=TA_CENTER)))
     elements.append(Paragraph("Registro Académico", ParagraphStyle('FirmaText', alignment=TA_CENTER, fontSize=10, fontName='Helvetica-Bold')))
@@ -279,30 +271,69 @@ def main():
         st.error("⚠️ Error: No se encuentra 'Notas.xlsx'.")
         st.stop()
 
-    # 3. INPUT Y BOTÓN
+    # 3. GESTIÓN DE ESTADO (SESSION STATE)
     if 'searched' not in st.session_state:
         st.session_state.searched = False
     if 'carnet_busqueda' not in st.session_state:
         st.session_state.carnet_busqueda = ""
+    # Nuevo estado para manejar la selección de usuario cuando hay duplicados
+    if 'selected_student_name' not in st.session_state:
+        st.session_state.selected_student_name = None
 
     carnet_input = st.text_input("Ingrese su Nº de Carnet", placeholder="XX-XXXX-XX", label_visibility="collapsed")
     
     if st.button("CONSULTAR AHORA"):
         st.session_state.searched = True
         st.session_state.carnet_busqueda = carnet_input
+        # Reiniciar selección al hacer nueva búsqueda
+        st.session_state.selected_student_name = None 
 
-    # 4. LÓGICA
+    # 4. LÓGICA PRINCIPAL
     if st.session_state.searched:
         carnet = st.session_state.carnet_busqueda.strip()
         
         if not re.match(r"^\d{2}-\d{4}-\d{2}$", carnet):
             st.warning("⚠️ Formato incorrecto. Ejemplo: 25-0022-02")
         else:
-            res = df[df['N° Carnet'] == carnet]
+            # Filtrar por carnet
+            res_raw = df[df['N° Carnet'] == carnet]
             
-            if res.empty:
+            if res_raw.empty:
                 st.error("❌ No se encontraron registros con ese carnet.")
             else:
+                # --- LÓGICA DE DETECCIÓN DE DUPLICADOS ---
+                # Obtener lista de nombres únicos asociados a ese carnet
+                nombres_unicos = res_raw['Nombres y Apellidos'].unique()
+                
+                nombre_seleccionado = None
+                
+                # CASO A: Solo hay 1 estudiante con ese carnet (Lo normal)
+                if len(nombres_unicos) == 1:
+                    nombre_seleccionado = nombres_unicos[0]
+                
+                # CASO B: Hay múltiples estudiantes con el mismo carnet (Error de datos o duplicidad)
+                else:
+                    # Si el usuario ya eligió, usamos ese nombre
+                    if st.session_state.selected_student_name:
+                        nombre_seleccionado = st.session_state.selected_student_name
+                    else:
+                        # Si no ha elegido, mostramos pantalla de selección
+                        st.markdown('<h3 class="selection-title">¿Quién eres?</h3>', unsafe_allow_html=True)
+                        st.info("Hemos encontrado varios estudiantes con este número de carnet. Por favor selecciona tu nombre:")
+                        
+                        for nombre in nombres_unicos:
+                            # Generamos un botón por cada nombre
+                            if st.button(f"👤 {nombre}", key=nombre):
+                                st.session_state.selected_student_name = nombre
+                                st.rerun() # Recargamos la app para mostrar las notas
+                        
+                        st.stop() # Detenemos la ejecución aquí hasta que seleccione
+
+                # --- MOSTRAR NOTAS (Solo llega aquí si ya tenemos un nombre único o seleccionado) ---
+                
+                # Filtramos el dataframe original usando carnet Y el nombre específico
+                res = res_raw[res_raw['Nombres y Apellidos'] == nombre_seleccionado]
+                
                 p = res.iloc[0]
                 
                 # DATOS PERSONALES
@@ -320,12 +351,11 @@ def main():
                 
                 for _, row in res.iterrows():
                     nf = str(row['Nota Final']).strip()
-                    # Verificar si existe Nota de Especial y limpiarla
                     ne_raw = str(row['Nota de Especial']).strip()
                     ne = ne_raw if ne_raw and ne_raw.lower() != "nan" and ne_raw != "-" else ""
                     
                     estado_texto, color_nota, color_badge, bg_badge = "APROBADO", "#2e7d32", "#155724", "#d4edda"
-                    mostrar_ne_html = ""
+                    mostrar_ne_html = "" # Inicializar siempre vacía para evitar errores
                     
                     es_sd = (nf.upper() == "SD")
                     
@@ -333,15 +363,14 @@ def main():
                         val = float(nf)
                         if val < 60:
                             estado_texto, color_nota, color_badge, bg_badge = "REPROBADO", "#c62828", "#721c24", "#f8d7da"
-                            # Lógica estricta para Nota Especial
-                            # Solo si: Nota < 60 Y no es SD Y hay un valor real en Nota Especial
                             if not es_sd and ne:
                                 mostrar_ne_html = f'<span class="nota-esp">Nota Esp: {ne}</span>'
                     except:
                         if es_sd:
                             estado_texto, color_nota, color_badge, bg_badge = "SIN DERECHO", "#c62828", "#721c24", "#f8d7da"
 
-                    # TARJETA DE MATERIA (HTML LIMPIO - SIN EL DIV SUELTO)
+                    # TARJETA DE MATERIA (CORRECCIÓN HTML PARA EVITAR DIVS FANTASMAS)
+                    # La clave es asegurar que {mostrar_ne_html} no rompa la estructura si está vacío
                     st.markdown(f"""
                     <div class="subject-card">
                         <div class="subject-left">
