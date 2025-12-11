@@ -278,7 +278,7 @@ def main():
         <div class="header-container">
             {logo_html}
             <div class="header-subtitle">Consulta de Calificaciones</div>
-            <h1 class="univ-title">UNMRMA<br>CUR-CARAZO</h1>
+            <h1 class="univ-title">UNMRMA CUR-CARAZO</h1>
         </div>
     """, unsafe_allow_html=True)
 
@@ -434,3 +434,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
