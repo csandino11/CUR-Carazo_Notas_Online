@@ -38,9 +38,9 @@ css_style = f"""
         background-size: auto;
     }}
     
-    /* 2. CONTENEDOR */
+    /* 2. CONTENEDOR (Transparencia ajustada al 75%) */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.88);
+        background-color: rgba(255, 255, 255, 0.75); /* Cambio solicitado: 0.75 */
         border-radius: 0px 0px 20px 20px;
         padding: 1rem 1rem 3rem 1rem;
         max-width: 800px;
@@ -61,15 +61,17 @@ css_style = f"""
     }}
     .header-subtitle {{
         color: #555 !important;
-        font-size: 1.1rem;
+        font-size: 1.5rem;
         font-weight: 500;
         margin-bottom: 5px;
         text-transform: uppercase;
         letter-spacing: 1px;
     }}
+    
+    /* TITULO REDUCIDO PARA MÓVIL (Cambio solicitado: 1rem) */
     .univ-title {{
         color: #003366 !important;
-        font-size: 1.5rem;
+        font-size: 1rem; /* Reducido un 30% aprox para que entre en una linea */
         font-weight: 800;
         margin-top: 5px;
         line-height: 1.2;
@@ -239,7 +241,6 @@ def generar_pdf(alumno_data, info):
     elements.append(Spacer(1, 20))
     
     # TABLA DE NOTAS
-    # Corrección de "Aprobado con Especial" en Estado
     data_notas = [['ASIGNATURA', 'DOCENTE', 'NOTA', 'N. ESP.', 'ESTADO']]
     for item in alumno_data:
         data_notas.append([
@@ -250,13 +251,11 @@ def generar_pdf(alumno_data, info):
     
     t_notas = Table(data_notas, colWidths=[2.3*inch, 2.0*inch, 0.7*inch, 0.7*inch, 1.0*inch])
     t_notas.setStyle(TableStyle([
-        # ENCABEZADO AZUL SOLIDO (Col 0 a Col final de la Fila 0)
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#003366")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        # FILAS ALTERNAS (Empieza Fila 1)
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.white]),
         ('GRID', (0,0), (-1,-1), 0.5, colors.grey)
     ]))
@@ -358,7 +357,7 @@ def main():
                     # 3. Especial (Azul)
                     
                     estado_app = "APROBADO"
-                    estado_pdf = "Aprobado"
+                    estado_pdf = "Aprobado" # Por defecto
                     
                     # Colores por defecto (Aprobado/Verde)
                     color_nota = "#2e7d32" 
@@ -376,7 +375,8 @@ def main():
                             if es_especial:
                                 # ESTADO: ESPECIAL (AZUL)
                                 estado_app = "ESPECIAL"
-                                estado_pdf = "Aprobado con Especial"
+                                # Cambio solicitado: En PDF dice "Aprobado", en App dice "ESPECIAL"
+                                estado_pdf = "Aprobado" 
                                 color_nota = "#0056b3" # Azul fuerte
                                 bg_badge = "#cce5ff"   # Azul claro fondo
                                 color_badge = "#004085" # Azul texto
@@ -390,7 +390,7 @@ def main():
                     except:
                         # Si es SD, NSP o texto no numérico
                         estado_app = nf.upper() if len(nf) < 12 else "REPROBADO"
-                        estado_pdf = "Reprobado" # En PDF suele ponerse Sin Derecho o Reprobado
+                        estado_pdf = "Reprobado" 
                         if es_sd:
                              estado_pdf = "Sin Derecho"
                         
@@ -398,7 +398,7 @@ def main():
                         bg_badge = "#f8d7da"
                         color_badge = "#721c24"
 
-                    # TARJETA HTML (ESTRUCTURA FIJA = 0 ERRORES)
+                    # TARJETA HTML
                     st.markdown(f"""
                     <div class="subject-card">
                         <div class="subject-left">
